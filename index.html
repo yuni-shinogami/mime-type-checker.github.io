@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MIME Type Checker</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="container">
+        <h1>MIME Type Checker</h1>
+        <p>ファイルを選択すると、そのMIME Typeを確認できます。</p>
+        
+        <div class="file-upload">
+            <input type="file" id="fileInput" hidden>
+            <button id="selectFileBtn">ファイルを選択</button>
+            <span id="selectedFileName">ファイルが選択されていません</span>
+        </div>
+        
+        <div class="result-container" id="resultContainer">
+            <!-- 結果がここに表示されます -->
+        </div>
+    </div>
+
+    <script src="script.js"></script>
+</body>
+</html> 
