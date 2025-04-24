@@ -85,6 +85,30 @@ button:hover {
     color: #16a085;
 }
 
+/* MIMEタイプ診断情報のスタイル */
+.mime-diagnostic {
+    background-color: #fdf2d0;
+    border-left: 4px solid #f39c12;
+}
+
+.mime-diagnostic ul {
+    margin-left: 20px;
+    margin-top: 5px;
+}
+
+.mime-diagnostic ul ul {
+    margin-left: 15px;
+    margin-top: 3px;
+    color: #7f8c8d;
+}
+
+/* エラー表示のスタイル */
+.error {
+    background-color: #fad7d7;
+    border-left: 4px solid #e74c3c;
+    color: #c0392b;
+}
+
 /* ファイル内容の表示スタイル */
 .file-content {
     margin-top: 20px;
