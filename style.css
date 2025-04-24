@@ -80,9 +80,92 @@ button:hover {
     flex-direction: column;
 }
 
+/* ファイルタイプ情報セクション */
+.file-type-info {
+    background-color: #e8f4f9;
+    border-left: 4px solid #3498db;
+    margin: 10px 0;
+    padding: 12px;
+}
+
+.file-type-info strong {
+    color: #2980b9;
+    display: block;
+    margin-bottom: 8px;
+    font-size: 16px;
+}
+
 .result-mime {
     font-weight: bold;
     color: #16a085;
+}
+
+.result-mime-unknown {
+    font-weight: bold;
+    color: #7f8c8d;
+    font-style: italic;
+}
+
+/* 推測されたMIMEタイプのスタイル */
+.result-mime-guessed {
+    font-weight: bold;
+    color: #e67e22;
+    font-style: italic;
+    margin-top: 5px;
+    font-size: 0.9em;
+}
+
+/* 推測バナーのスタイル */
+.guess-banner {
+    background-color: #fcf3cf;
+    border-left: 4px solid #f39c12;
+    margin-bottom: 15px;
+}
+
+.guess-banner h3 {
+    color: #d35400;
+    margin-bottom: 8px;
+}
+
+.guess-banner p {
+    text-align: left;
+    margin-bottom: 8px;
+    color: #333;
+    font-size: 14px;
+}
+
+.guess-note {
+    font-style: italic;
+    color: #7f8c8d;
+    font-size: 13px;
+    margin-top: 10px;
+}
+
+/* 推測情報のテキストスタイル */
+.guess-info {
+    background-color: #fcf3cf;
+    padding: 8px;
+    border-radius: 4px;
+    font-size: 14px;
+    color: #333;
+    border-left: 3px solid #f39c12;
+}
+
+.guess-info strong {
+    color: #d35400;
+}
+
+/* 推測MIMEタイプのコンテナ */
+.guessed-mime-container {
+    margin-top: 12px;
+    padding: 8px 0;
+    border-top: 1px dashed #bdc3c7;
+    animation: flash-highlight 1s ease-in-out;
+}
+
+@keyframes flash-highlight {
+    0% { background-color: rgba(230, 126, 34, 0.2); }
+    100% { background-color: transparent; }
 }
 
 /* MIMEタイプ診断情報のスタイル */
@@ -131,6 +214,23 @@ button:hover {
     resize: vertical;
 }
 
+/* ファイル内容の説明テキスト */
+.file-content p {
+    text-align: left;
+    color: #7f8c8d;
+    margin-bottom: 10px;
+}
+
+/* 画像表示のスタイル */
+.file-content img {
+    display: block;
+    margin: 0 auto;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    background-color: #f5f5f5;
+    padding: 5px;
+}
+
 /* プロパティリスト表示のスタイル */
 pre {
     background-color: #f1f1f1;
@@ -142,4 +242,73 @@ pre {
     max-height: 400px;
     overflow-y: auto;
     margin-top: 10px;
+}
+
+/* Adobe情報セクションのスタイル */
+.adobe-info {
+    margin-top: 15px;
+    padding: 12px;
+    border-radius: 8px;
+    background-color: #f5f0ff;
+    border-left: 4px solid #9a74db;
+}
+
+.adobe-info strong {
+    color: #5f3dc4;
+}
+
+.adobe-info ul {
+    padding-left: 20px;
+}
+
+.adobe-info li {
+    margin: 8px 0;
+}
+
+/* Adobe関連ファイルのMIMEタイプ表示を強調 */
+.mime-type-adobe {
+    background-color: #5f3dc4;
+    color: white;
+    font-weight: bold;
+}
+
+/* Adobe関連ファイル用のアイコン設定 */
+.file-icon.adobe-file {
+    background-color: #470137;
+    color: white;
+}
+
+.file-icon.photoshop {
+    background-color: #31A8FF;
+}
+
+.file-icon.illustrator {
+    background-color: #FF9A00;
+}
+
+.file-icon.indesign {
+    background-color: #FF3366;
+}
+
+.file-icon.xd {
+    background-color: #FF26BE;
+}
+
+.file-icon.acrobat {
+    background-color: #FF0000;
+}
+
+.file-icon.after-effects {
+    background-color: #9999FF;
+}
+
+.file-icon.premiere {
+    background-color: #9999FF;
+}
+
+/* 結果アイテムのホバーエフェクト強化 */
+.result-item:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 12px rgba(0, 0, 0, 0.1);
+    transition: all 0.3s ease;
 } 
