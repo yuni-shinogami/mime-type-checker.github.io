@@ -183,6 +183,15 @@ document.addEventListener('DOMContentLoaded', () => {
             'wmv': 'video/x-ms-wmv',
             'webm': 'video/webm',
             'mkv': 'video/x-matroska',
+            'flv': 'video/x-flv',
+            'm4v': 'video/x-m4v',
+            '3gp': 'video/3gpp',
+            '3g2': 'video/3gpp2',
+            'ogv': 'video/ogg',
+            'mpg': 'video/mpeg',
+            'mpeg': 'video/mpeg',
+            'mts': 'video/mp2t',
+            'ts': 'video/mp2t',
             
             // アーカイブ系
             'zip': 'application/zip',
@@ -505,6 +514,415 @@ document.addEventListener('DOMContentLoaded', () => {
                 }
                 infoText.style.marginTop = '10px';
                 fileContentDiv.appendChild(infoText);
+            } else if (effectiveMimeType.startsWith('video/')) {
+                // ビデオファイルの場合はビデオ要素として表示
+                const video = document.createElement('video');
+                video.src = content;
+                video.controls = true;
+                video.style.maxWidth = '100%';
+                video.style.maxHeight = '400px';
+                video.style.marginTop = '10px';
+                video.preload = 'metadata';
+                fileContentDiv.appendChild(video);
+                
+                const infoText = document.createElement('p');
+                if (!file.type && guessedMimeType) {
+                    infoText.className = 'guess-info';
+                    infoText.innerHTML = `<strong>【拡張子から推測】</strong>: このファイルはビデオファイル（${guessedMimeType}）として表示しています。実際のファイル内容と異なる場合があります。`;
+                } else {
+                    infoText.textContent = `ビデオファイル（${effectiveMimeType}）として表示しています。`;
+                }
+                infoText.style.marginTop = '10px';
+                fileContentDiv.appendChild(infoText);
+                
+                // ビデオの詳細情報を追加
+                video.addEventListener('loadedmetadata', function() {
+                    try {
+                        const duration = video.duration;
+                        const width = video.videoWidth;
+                        const height = video.videoHeight;
+                        
+                        // 時間を分:秒形式にフォーマット
+                        const formatDuration = (seconds) => {
+                            if (isNaN(seconds) || !isFinite(seconds)) return '不明';
+                            const minutes = Math.floor(seconds / 60);
+                            const secs = Math.floor(seconds % 60);
+                            return `${minutes}:${secs.toString().padStart(2, '0')} (${Math.round(seconds)}秒)`;
+                        };
+                        
+                        // アスペクト比を計算
+                        const calculateAspectRatio = (w, h) => {
+                            if (!w || !h) return '不明';
+                            const gcd = (a, b) => b === 0 ? a : gcd(b, a % b);
+                            const divisor = gcd(w, h);
+                            return `${w / divisor}:${h / divisor}`;
+                        };
+                        
+                        // ビデオ情報コンテナを作成
+                        const videoInfoContainer = document.createElement('div');
+                        videoInfoContainer.style.marginTop = '10px';
+                        videoInfoContainer.style.padding = '10px';
+                        videoInfoContainer.style.border = '1px solid #ddd';
+                        videoInfoContainer.style.borderRadius = '5px';
+                        videoInfoContainer.style.backgroundColor = '#f9f9f9';
+                        
+                        const videoInfoTitle = document.createElement('h4');
+                        videoInfoTitle.textContent = 'ビデオ詳細情報';
+                        videoInfoTitle.style.margin = '0 0 10px 0';
+                        videoInfoTitle.style.color = '#333';
+                        videoInfoContainer.appendChild(videoInfoTitle);
+                        
+                        const videoInfoList = document.createElement('ul');
+                        videoInfoList.style.margin = '0';
+                        videoInfoList.style.paddingLeft = '20px';
+                        videoInfoList.style.fontSize = '0.9em';
+                        
+                        // 解像度情報
+                        const resolutionItem = document.createElement('li');
+                        resolutionItem.innerHTML = `<strong>解像度:</strong> ${width || '不明'} × ${height || '不明'} ピクセル`;
+                        videoInfoList.appendChild(resolutionItem);
+                        
+                        // アスペクト比
+                        const aspectRatioItem = document.createElement('li');
+                        aspectRatioItem.innerHTML = `<strong>アスペクト比:</strong> ${calculateAspectRatio(width, height)}`;
+                        videoInfoList.appendChild(aspectRatioItem);
+                        
+                        // 再生時間
+                        const durationItem = document.createElement('li');
+                        durationItem.innerHTML = `<strong>再生時間:</strong> ${formatDuration(duration)}`;
+                        videoInfoList.appendChild(durationItem);
+                        
+                        // ファイルサイズあたりの推定ビットレート
+                        const fileSizeKB = file.size / 1024;
+                        if (duration && duration > 0) {
+                            const estimatedBitrate = Math.round((fileSizeKB * 8) / duration);
+                            const bitrateItem = document.createElement('li');
+                            bitrateItem.innerHTML = `<strong>推定ビットレート:</strong> ${estimatedBitrate} kbps (ファイルサイズから計算)`;
+                            videoInfoList.appendChild(bitrateItem);
+                        }
+                        
+                        // 解像度による品質分類
+                        const getQualityCategory = (w, h) => {
+                            if (!w || !h) return '不明';
+                            const pixels = w * h;
+                            if (pixels >= 3840 * 2160) return '4K UHD (2160p)';
+                            if (pixels >= 2560 * 1440) return 'QHD (1440p)';
+                            if (pixels >= 1920 * 1080) return 'Full HD (1080p)';
+                            if (pixels >= 1280 * 720) return 'HD (720p)';
+                            if (pixels >= 854 * 480) return 'SD (480p)';
+                            if (pixels >= 640 * 360) return '360p';
+                            return '低解像度';
+                        };
+                        
+                        const qualityItem = document.createElement('li');
+                        qualityItem.innerHTML = `<strong>品質分類:</strong> ${getQualityCategory(width, height)}`;
+                        videoInfoList.appendChild(qualityItem);
+                        
+                        // ビデオ形式の詳細情報
+                        const getVideoFormatInfo = (mimeType, fileName) => {
+                            const ext = getFileExtension(fileName).toLowerCase();
+                            const formatInfo = {
+                                'mp4': {
+                                    name: 'MP4 (MPEG-4 Part 14)',
+                                    description: 'H.264/H.265コーデックを使用する汎用的なビデオ形式。Web配信に最適。',
+                                    compatibility: '非常に高い（ほぼ全てのデバイス・ブラウザで再生可能）'
+                                },
+                                'avi': {
+                                    name: 'AVI (Audio Video Interleave)',
+                                    description: 'Microsoftが開発した古典的なビデオ形式。様々なコーデックを格納可能。',
+                                    compatibility: '高い（多くのメディアプレーヤーで対応）'
+                                },
+                                'mov': {
+                                    name: 'MOV (QuickTime Movie)',
+                                    description: 'Apple QuickTimeの標準形式。高品質なビデオ保存に適している。',
+                                    compatibility: '限定的（Safari、macOSで良好、Windows ChromeやFirefoxでは再生困難）'
+                                },
+                                'webm': {
+                                    name: 'WebM',
+                                    description: 'Google開発のWeb配信用オープンソース形式。VP8/VP9コーデック使用。',
+                                    compatibility: '高い（現代的なブラウザで標準サポート）'
+                                },
+                                'mkv': {
+                                    name: 'MKV (Matroska Video)',
+                                    description: 'オープンソースのマルチメディアコンテナ。複数の音声・字幕トラックをサポート。',
+                                    compatibility: '中程度（VLCなどの対応プレーヤーが必要）'
+                                },
+                                'flv': {
+                                    name: 'FLV (Flash Video)',
+                                    description: 'Adobe Flash用ビデオ形式。現在は非推奨。',
+                                    compatibility: '低い（Flash Playerサポート終了により再生困難）'
+                                },
+                                'm4v': {
+                                    name: 'M4V (iTunes Video)',
+                                    description: 'Apple iTunes用のMP4ベース形式。DRM保護に対応。',
+                                    compatibility: '中程度（iTunes、QuickTimeで再生可能）'
+                                },
+                                '3gp': {
+                                    name: '3GP (3rd Generation Partnership Project)',
+                                    description: '携帯電話向けのビデオ形式。ファイルサイズが小さい。',
+                                    compatibility: '中程度（モバイルデバイス中心）'
+                                },
+                                'ogv': {
+                                    name: 'OGV (Ogg Video)',
+                                    description: 'オープンソースのTheora codecを使用する形式。',
+                                    compatibility: '中程度（Firefox、VLCなどで対応）'
+                                },
+                                'mpg': {
+                                    name: 'MPG/MPEG (Motion Picture Experts Group)',
+                                    description: '初期のデジタルビデオ標準。DVD、放送で広く使用。',
+                                    compatibility: '高い（レガシーサポート含め広く対応）'
+                                }
+                            };
+                            
+                            return formatInfo[ext] || {
+                                name: `${ext.toUpperCase()} ビデオファイル`,
+                                description: 'ビデオファイル形式の詳細情報は登録されていません。',
+                                compatibility: '不明'
+                            };
+                        };
+                        
+                        const formatInfo = getVideoFormatInfo(effectiveMimeType, file.name);
+                        const formatItem = document.createElement('li');
+                        formatItem.innerHTML = `<strong>ファイル形式:</strong> ${formatInfo.name}`;
+                        videoInfoList.appendChild(formatItem);
+                        
+                        videoInfoContainer.appendChild(videoInfoList);
+                        
+                        // フォーマット詳細情報を別セクションで表示
+                        const formatDetailsContainer = document.createElement('div');
+                        formatDetailsContainer.style.marginTop = '8px';
+                        formatDetailsContainer.style.paddingTop = '8px';
+                        formatDetailsContainer.style.borderTop = '1px solid #ddd';
+                        
+                        const formatDetailsTitle = document.createElement('h5');
+                        formatDetailsTitle.textContent = 'フォーマット詳細';
+                        formatDetailsTitle.style.margin = '0 0 5px 0';
+                        formatDetailsTitle.style.fontSize = '0.85em';
+                        formatDetailsTitle.style.color = '#555';
+                        formatDetailsContainer.appendChild(formatDetailsTitle);
+                        
+                        const formatDescription = document.createElement('p');
+                        formatDescription.innerHTML = `<strong>説明:</strong> ${formatInfo.description}`;
+                        formatDescription.style.margin = '0 0 5px 0';
+                        formatDescription.style.fontSize = '0.8em';
+                        formatDescription.style.color = '#666';
+                        formatDetailsContainer.appendChild(formatDescription);
+                        
+                        const formatCompatibility = document.createElement('p');
+                        formatCompatibility.innerHTML = `<strong>互換性:</strong> ${formatInfo.compatibility}`;
+                        formatCompatibility.style.margin = '0';
+                        formatCompatibility.style.fontSize = '0.8em';
+                        formatCompatibility.style.color = '#666';
+                        formatDetailsContainer.appendChild(formatCompatibility);
+                        
+                        videoInfoContainer.appendChild(formatDetailsContainer);
+                        
+                        // 互換性警告を表示（必要な場合）
+                        const showCompatibilityWarning = (fileName, mimeType) => {
+                            const ext = getFileExtension(fileName).toLowerCase();
+                            const userAgent = navigator.userAgent;
+                            const isWindows = userAgent.includes('Windows');
+                            const isChrome = userAgent.includes('Chrome');
+                            const isFirefox = userAgent.includes('Firefox');
+                            
+                            const warningFormats = ['mov', 'avi', 'mkv', 'flv'];
+                            
+                            if (warningFormats.includes(ext)) {
+                                const warningContainer = document.createElement('div');
+                                warningContainer.style.marginTop = '10px';
+                                warningContainer.style.padding = '10px';
+                                warningContainer.style.border = '2px solid #ff9800';
+                                warningContainer.style.borderRadius = '5px';
+                                warningContainer.style.backgroundColor = '#fff3e0';
+                                
+                                const warningTitle = document.createElement('h5');
+                                warningTitle.textContent = '⚠️ 互換性に関する注意';
+                                warningTitle.style.margin = '0 0 8px 0';
+                                warningTitle.style.color = '#e65100';
+                                warningContainer.appendChild(warningTitle);
+                                
+                                let warningText = '';
+                                if (ext === 'mov' && isWindows && (isChrome || isFirefox)) {
+                                    warningText = 'MOVファイルはWindows版Chrome/Firefoxでは再生できない場合があります。Safariまたはデスクトップアプリケーションの使用を推奨します。';
+                                } else if (ext === 'avi') {
+                                    warningText = 'AVIファイルはコーデックによって再生できない場合があります。MP4形式への変換を推奨します。';
+                                } else if (ext === 'mkv') {
+                                    warningText = 'MKVファイルはブラウザでの再生サポートが限定的です。デスクトップアプリケーションでの再生を推奨します。';
+                                } else if (ext === 'flv') {
+                                    warningText = 'FLVファイルは現在のブラウザではサポートされていません。MP4形式への変換が必要です。';
+                                }
+                                
+                                const warningDescription = document.createElement('p');
+                                warningDescription.textContent = warningText;
+                                warningDescription.style.margin = '0';
+                                warningDescription.style.fontSize = '0.85em';
+                                warningDescription.style.color = '#bf360c';
+                                warningContainer.appendChild(warningDescription);
+                                
+                                return warningContainer;
+                            }
+                            return null;
+                        };
+                        
+                        const warning = showCompatibilityWarning(file.name, effectiveMimeType);
+                        if (warning) {
+                            fileContentDiv.appendChild(warning);
+                        }
+                        
+                        fileContentDiv.appendChild(videoInfoContainer);
+                        
+                    } catch (error) {
+                        console.error('ビデオメタデータの取得中にエラーが発生しました:', error);
+                        const errorInfoText = document.createElement('p');
+                        errorInfoText.innerHTML = `<strong>ビデオ情報:</strong> メタデータの読み込みに失敗しました`;
+                        errorInfoText.style.marginTop = '10px';
+                        errorInfoText.style.color = '#999';
+                        fileContentDiv.appendChild(errorInfoText);
+                    }
+                });
+                
+                // エラーハンドリング
+                video.addEventListener('error', function(e) {
+                    console.error('ビデオの読み込みエラー:', e);
+                    
+                    // エラー詳細情報を取得
+                    const getDetailedErrorInfo = (fileName, mimeType) => {
+                        const ext = getFileExtension(fileName).toLowerCase();
+                        const userAgent = navigator.userAgent;
+                        const isWindows = userAgent.includes('Windows');
+                        const isChrome = userAgent.includes('Chrome');
+                        const isFirefox = userAgent.includes('Firefox');
+                        const isSafari = userAgent.includes('Safari') && !userAgent.includes('Chrome');
+                        
+                        const errorInfo = {
+                            'mov': {
+                                reason: 'MOVファイルは、WindowsのChromeやFirefoxでは標準的にサポートされていません。',
+                                solutions: [
+                                    'Safariブラウザで再生を試してください（macOSの場合）',
+                                    'VLC Media Player、QuickTime Player等のデスクトップアプリケーションを使用してください',
+                                    'MP4形式に変換してからアップロードしてください',
+                                    'HandBrake、FFmpeg等の無料ツールで変換可能です'
+                                ],
+                                browserSpecific: isWindows && isChrome ? 
+                                    'Windows ChromeではMOVファイルの再生がサポートされていません。' : 
+                                    ''
+                            },
+                            'avi': {
+                                reason: 'AVIファイルは使用されているコーデックによってブラウザでの再生が困難な場合があります。',
+                                solutions: [
+                                    'MP4形式への変換を推奨します',
+                                    'VLC Media Player等のデスクトップアプリケーションを使用してください',
+                                    'H.264コーデックでエンコードされたAVIファイルであれば再生可能な場合があります'
+                                ]
+                            },
+                            'mkv': {
+                                reason: 'MKVファイルはブラウザでの標準サポートが限定的です。',
+                                solutions: [
+                                    'VLC Media Player、MPC-HC等の対応プレーヤーを使用してください',
+                                    'MP4またはWebM形式への変換を推奨します'
+                                ]
+                            },
+                            'flv': {
+                                reason: 'FLVファイルはFlash Playerに依存しており、現在のブラウザではサポートされていません。',
+                                solutions: [
+                                    'MP4形式への変換が必要です',
+                                    'Flash Playerサポートは2020年に終了しています'
+                                ]
+                            }
+                        };
+                        
+                        return errorInfo[ext] || {
+                            reason: 'このビデオファイル形式はブラウザでサポートされていないか、ファイルが破損している可能性があります。',
+                            solutions: [
+                                'ファイルが正常かどうか確認してください',
+                                'MP4、WebM等のWeb対応形式への変換を検討してください',
+                                'VLC Media Player等のデスクトップアプリケーションで再生を試してください'
+                            ]
+                        };
+                    };
+                    
+                    const errorInfo = getDetailedErrorInfo(file.name, effectiveMimeType);
+                    
+                    // エラー情報コンテナを作成
+                    const errorContainer = document.createElement('div');
+                    errorContainer.style.marginTop = '10px';
+                    errorContainer.style.padding = '15px';
+                    errorContainer.style.border = '2px solid #d00';
+                    errorContainer.style.borderRadius = '5px';
+                    errorContainer.style.backgroundColor = '#ffeaea';
+                    
+                    const errorTitle = document.createElement('h4');
+                    errorTitle.textContent = '⚠️ ビデオ再生エラー';
+                    errorTitle.style.margin = '0 0 10px 0';
+                    errorTitle.style.color = '#d00';
+                    errorContainer.appendChild(errorTitle);
+                    
+                    const errorReason = document.createElement('p');
+                    errorReason.innerHTML = `<strong>原因:</strong> ${errorInfo.reason}`;
+                    errorReason.style.margin = '0 0 10px 0';
+                    errorReason.style.fontSize = '0.9em';
+                    errorContainer.appendChild(errorReason);
+                    
+                    // ブラウザ固有の情報があれば表示
+                    if (errorInfo.browserSpecific) {
+                        const browserInfo = document.createElement('p');
+                        browserInfo.innerHTML = `<strong>ブラウザ情報:</strong> ${errorInfo.browserSpecific}`;
+                        browserInfo.style.margin = '0 0 10px 0';
+                        browserInfo.style.fontSize = '0.85em';
+                        browserInfo.style.color = '#666';
+                        errorContainer.appendChild(browserInfo);
+                    }
+                    
+                    const solutionsTitle = document.createElement('p');
+                    solutionsTitle.innerHTML = '<strong>解決策:</strong>';
+                    solutionsTitle.style.margin = '0 0 5px 0';
+                    solutionsTitle.style.fontSize = '0.9em';
+                    errorContainer.appendChild(solutionsTitle);
+                    
+                    const solutionsList = document.createElement('ul');
+                    solutionsList.style.margin = '0';
+                    solutionsList.style.paddingLeft = '20px';
+                    solutionsList.style.fontSize = '0.85em';
+                    
+                    errorInfo.solutions.forEach(solution => {
+                        const listItem = document.createElement('li');
+                        listItem.textContent = solution;
+                        listItem.style.marginBottom = '3px';
+                        solutionsList.appendChild(listItem);
+                    });
+                    
+                    errorContainer.appendChild(solutionsList);
+                    fileContentDiv.appendChild(errorContainer);
+                });
+            } else if (effectiveMimeType.startsWith('audio/')) {
+                // オーディオファイルの場合はオーディオ要素として表示
+                const audio = document.createElement('audio');
+                audio.src = content;
+                audio.controls = true;
+                audio.style.width = '100%';
+                audio.style.marginTop = '10px';
+                audio.preload = 'metadata';
+                fileContentDiv.appendChild(audio);
+                
+                const infoText = document.createElement('p');
+                if (!file.type && guessedMimeType) {
+                    infoText.className = 'guess-info';
+                    infoText.innerHTML = `<strong>【拡張子から推測】</strong>: このファイルはオーディオファイル（${guessedMimeType}）として表示しています。実際のファイル内容と異なる場合があります。`;
+                } else {
+                    infoText.textContent = `オーディオファイル（${effectiveMimeType}）として表示しています。`;
+                }
+                infoText.style.marginTop = '10px';
+                fileContentDiv.appendChild(infoText);
+                
+                // オーディオの詳細情報を追加
+                audio.addEventListener('loadedmetadata', function() {
+                    const audioInfoText = document.createElement('p');
+                    audioInfoText.innerHTML = `<strong>オーディオ情報:</strong> ${Math.round(audio.duration)}秒`;
+                    audioInfoText.style.marginTop = '5px';
+                    audioInfoText.style.fontSize = '0.9em';
+                    audioInfoText.style.color = '#666';
+                    fileContentDiv.appendChild(audioInfoText);
+                });
             } else {
                 // テキストエリアでファイル内容を表示
                 const contentArea = document.createElement('textarea');
@@ -544,8 +962,8 @@ document.addEventListener('DOMContentLoaded', () => {
         
         // MIMEタイプによる読み込み方法の決定
         try {
-            if (effectiveMimeType.startsWith('image/')) {
-                // 画像ファイルはData URLとして読み込む
+            if (effectiveMimeType.startsWith('image/') || effectiveMimeType.startsWith('video/') || effectiveMimeType.startsWith('audio/')) {
+                // 画像、ビデオ、オーディオファイルはData URLとして読み込む
                 reader.readAsDataURL(file);
             } else {
                 // テキストファイルとしての読み込みを試みる
