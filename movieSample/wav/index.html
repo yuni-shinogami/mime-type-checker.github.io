@@ -1,0 +1,1266 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>WAVファイル再生テスト - 非圧縮オーディオ詳細分析</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+            background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%);
+            color: #333;
+            line-height: 1.6;
+        }
+        
+        .container {
+            background: white;
+            padding: 30px;
+            border-radius: 15px;
+            box-shadow: 0 15px 35px rgba(0,0,0,0.1);
+        }
+        
+        h1 {
+            color: #333;
+            text-align: center;
+            margin-bottom: 30px;
+            background: linear-gradient(45deg, #667eea, #764ba2);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            font-size: 2.8rem;
+        }
+        
+        .format-badge {
+            display: inline-block;
+            background: linear-gradient(45deg, #667eea, #764ba2);
+            color: white;
+            padding: 8px 16px;
+            border-radius: 20px;
+            font-size: 12px;
+            margin: 3px;
+            font-weight: bold;
+            box-shadow: 0 3px 8px rgba(102, 126, 234, 0.3);
+        }
+        
+        .browser-info {
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            color: white;
+            padding: 25px;
+            border-radius: 12px;
+            margin-bottom: 25px;
+            box-shadow: 0 6px 20px rgba(102, 126, 234, 0.3);
+        }
+        
+        .audio-section {
+            margin: 30px 0;
+            padding: 25px;
+            border: 3px solid #e3f2fd;
+            border-radius: 15px;
+            background: linear-gradient(to bottom, #fafafa, #f0f8ff);
+            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+        }
+        
+        .audio-player {
+            width: 100%;
+            margin: 20px 0;
+            border-radius: 10px;
+            box-shadow: 0 6px 20px rgba(0,0,0,0.15);
+        }
+        
+        .audio-controls {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+            gap: 15px;
+            margin: 20px 0;
+            padding: 20px;
+            background: linear-gradient(135deg, #f5f7fa, #c3cfe2);
+            border-radius: 12px;
+        }
+        
+        .control-btn {
+            background: linear-gradient(45deg, #667eea, #764ba2);
+            color: white;
+            border: none;
+            padding: 12px 18px;
+            border-radius: 25px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: bold;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 15px rgba(102, 126, 234, 0.3);
+        }
+        
+        .control-btn:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 8px 25px rgba(102, 126, 234, 0.4);
+        }
+        
+        .volume-control {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            background: white;
+            padding: 10px 15px;
+            border-radius: 25px;
+            box-shadow: inset 0 2px 5px rgba(0,0,0,0.1);
+        }
+        
+        .volume-slider {
+            width: 120px;
+            cursor: pointer;
+        }
+        
+        .metadata-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 25px;
+            margin: 30px 0;
+        }
+        
+        .metadata-card {
+            background: white;
+            padding: 25px;
+            border-radius: 12px;
+            border: 2px solid #e3f2fd;
+            box-shadow: 0 6px 20px rgba(0,0,0,0.1);
+            transition: all 0.3s ease;
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .metadata-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 4px;
+            background: linear-gradient(90deg, #667eea, #764ba2);
+        }
+        
+        .metadata-card:hover {
+            transform: translateY(-8px);
+            box-shadow: 0 12px 30px rgba(0,0,0,0.15);
+        }
+        
+        .metadata-card h4 {
+            margin-top: 0;
+            color: #333;
+            border-bottom: 2px solid #667eea;
+            padding-bottom: 10px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-size: 1.2em;
+        }
+        
+        .metadata-item {
+            margin: 15px 0;
+            padding: 10px 0;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 1px dotted #ddd;
+        }
+        
+        .metadata-label {
+            font-weight: bold;
+            color: #555;
+            flex: 1;
+        }
+        
+        .metadata-value {
+            color: #333;
+            background: linear-gradient(135deg, #f8f9fa, #e9ecef);
+            padding: 8px 12px;
+            border-radius: 8px;
+            font-family: monospace;
+            font-size: 0.9em;
+            flex: 1;
+            text-align: right;
+            box-shadow: inset 0 1px 3px rgba(0,0,0,0.1);
+        }
+        
+        .wav-specific {
+            background: linear-gradient(135deg, #ff9a9e, #fecfef);
+            border: 2px solid #ff6b9d;
+        }
+        
+        .waveform-container {
+            margin: 25px 0;
+            padding: 25px;
+            background: linear-gradient(135deg, #0f0c29, #24243e);
+            border-radius: 15px;
+            color: white;
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .waveform-container::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><defs><pattern id="grid" width="10" height="10" patternUnits="userSpaceOnUse"><path d="M 10 0 L 0 0 0 10" fill="none" stroke="rgba(255,255,255,0.1)" stroke-width="1"/></pattern></defs><rect width="100" height="100" fill="url(%23grid)"/></svg>');
+            opacity: 0.3;
+        }
+        
+        .waveform {
+            width: 100%;
+            height: 100px;
+            background: repeating-linear-gradient(
+                90deg,
+                #667eea 0px,
+                #667eea 3px,
+                transparent 3px,
+                transparent 8px
+            );
+            border-radius: 8px;
+            position: relative;
+            overflow: hidden;
+            box-shadow: inset 0 2px 10px rgba(0,0,0,0.3);
+        }
+        
+        .waveform-progress {
+            height: 100%;
+            background: linear-gradient(90deg, #ff6b6b, #feca57, #48dbfb);
+            width: 0%;
+            transition: width 0.1s ease;
+            border-radius: 8px 0 0 8px;
+            box-shadow: 0 0 20px rgba(255, 107, 107, 0.5);
+        }
+        
+        .time-display {
+            display: flex;
+            justify-content: space-between;
+            margin: 15px 0;
+            font-family: 'Courier New', monospace;
+            font-size: 1.2em;
+            color: #fff;
+            text-shadow: 0 1px 3px rgba(0,0,0,0.3);
+        }
+        
+        .status {
+            padding: 15px;
+            margin: 15px 0;
+            border-radius: 10px;
+            font-weight: bold;
+            border-left: 5px solid;
+        }
+        
+        .success {
+            background: linear-gradient(135deg, #d4edda, #c3e6cb);
+            color: #155724;
+            border-left-color: #28a745;
+        }
+        
+        .error {
+            background: linear-gradient(135deg, #f8d7da, #f5c6cb);
+            color: #721c24;
+            border-left-color: #dc3545;
+        }
+        
+        .warning {
+            background: linear-gradient(135deg, #fff3cd, #ffeaa7);
+            color: #856404;
+            border-left-color: #ffc107;
+        }
+        
+        .info {
+            background: linear-gradient(135deg, #cce7ff, #b3d7ff);
+            color: #004085;
+            border-left-color: #007bff;
+        }
+        
+        .frequency-analyzer {
+            margin: 25px 0;
+            padding: 25px;
+            background: linear-gradient(135deg, #434343, #000000);
+            border-radius: 15px;
+            color: white;
+            position: relative;
+        }
+        
+        .frequency-bars {
+            display: flex;
+            justify-content: space-between;
+            align-items: end;
+            height: 120px;
+            gap: 3px;
+            margin: 20px 0;
+            padding: 15px;
+            background: rgba(0,0,0,0.3);
+            border-radius: 10px;
+        }
+        
+        .freq-bar {
+            background: linear-gradient(to top, #667eea, #764ba2, #f093fb);
+            width: 10px;
+            min-height: 3px;
+            border-radius: 5px 5px 0 0;
+            transition: height 0.1s ease;
+            box-shadow: 0 0 10px rgba(102, 126, 234, 0.5);
+        }
+        
+        .wav-comparison {
+            margin: 30px 0;
+            padding: 25px;
+            background: linear-gradient(135deg, #ffecd2, #fcb69f);
+            border-radius: 15px;
+            border: 2px solid #ff8a65;
+        }
+        
+        .comparison-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+            margin: 20px 0;
+        }
+        
+        .comparison-card {
+            background: white;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+        }
+        
+        .advanced-tests {
+            margin-top: 30px;
+            padding: 25px;
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            border-radius: 15px;
+            color: white;
+        }
+        
+        .test-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+            gap: 20px;
+            margin: 20px 0;
+        }
+        
+        .test-card {
+            background: rgba(255,255,255,0.1);
+            padding: 20px;
+            border-radius: 12px;
+            backdrop-filter: blur(15px);
+            border: 1px solid rgba(255,255,255,0.2);
+            transition: all 0.3s ease;
+        }
+        
+        .test-card:hover {
+            background: rgba(255,255,255,0.2);
+            transform: translateY(-5px);
+        }
+        
+        button {
+            background: linear-gradient(45deg, #667eea, #764ba2);
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 25px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: bold;
+            transition: all 0.3s ease;
+            margin: 5px;
+            box-shadow: 0 4px 15px rgba(102, 126, 234, 0.3);
+        }
+        
+        button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(102, 126, 234, 0.4);
+        }
+        
+        button:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+            transform: none;
+            box-shadow: none;
+        }
+        
+        .code-block {
+            background: linear-gradient(135deg, #2d3748, #4a5568);
+            color: #e2e8f0;
+            padding: 20px;
+            border-radius: 10px;
+            font-family: 'Courier New', monospace;
+            font-size: 12px;
+            white-space: pre-wrap;
+            margin: 15px 0;
+            max-height: 250px;
+            overflow-y: auto;
+            border: 1px solid #4a5568;
+            box-shadow: inset 0 2px 10px rgba(0,0,0,0.3);
+        }
+        
+        .sample-rate-indicator {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin: 10px 0;
+        }
+        
+        .rate-dot {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            background: linear-gradient(45deg, #667eea, #764ba2);
+            animation: pulse 2s infinite;
+        }
+        
+        @keyframes pulse {
+            0%, 100% { opacity: 1; transform: scale(1); }
+            50% { opacity: 0.7; transform: scale(1.1); }
+        }
+        
+        .bit-depth-meter {
+            background: linear-gradient(90deg, #667eea, #764ba2);
+            height: 8px;
+            border-radius: 4px;
+            margin: 10px 0;
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .bit-depth-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #ff6b6b, #feca57);
+            border-radius: 4px;
+            transition: width 0.3s ease;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🎼 WAVファイル詳細分析テスト</h1>
+        <p style="text-align: center; color: #666; font-size: 1.1em;">
+            非圧縮高品質オーディオファイルの包括的メタデータ取得 & 波形解析
+        </p>
+        
+        <!-- ブラウザ情報 -->
+        <div class="browser-info">
+            <h3>🖥️ ブラウザ・WAVサポート情報</h3>
+            <div id="browserInfo">検出中...</div>
+            <div style="margin-top: 15px;">
+                <div class="format-badge">WAV対応</div>
+                <div class="format-badge">PCM無圧縮</div>
+                <div class="format-badge">高音質</div>
+                <div class="format-badge">Web Audio API</div>
+            </div>
+        </div>
+        
+        <!-- WAVファイル再生テスト -->
+        <div class="audio-section">
+            <h3>🎵 WAVファイル再生 & メタデータテスト</h3>
+            <p><strong>テスト用WAVファイル:</strong> file_example_WAV_1MG.wav (非圧縮PCM)</p>
+            
+            <audio id="wavAudio" class="audio-player" controls preload="metadata">
+                <source src="file_example_WAV_1MG.wav" type="audio/wav">
+                お使いのブラウザはWAVファイルをサポートしていません。
+            </audio>
+            
+            <!-- 高度なオーディオコントロール -->
+            <div class="audio-controls">
+                <button class="control-btn" id="playPauseBtn">▶️ 再生</button>
+                <button class="control-btn" id="stopBtn">⏹️ 停止</button>
+                <button class="control-btn" id="rewindBtn">⏪ -10秒</button>
+                <button class="control-btn" id="forwardBtn">⏩ +10秒</button>
+                <button class="control-btn" id="loopBtn">🔁 ループ</button>
+                <div class="volume-control">
+                    <span>🔊</span>
+                    <input type="range" id="volumeSlider" class="volume-slider" min="0" max="1" step="0.05" value="1">
+                    <span id="volumeDisplay">100%</span>
+                </div>
+            </div>
+            
+            <!-- 高精度波形ビジュアライザー -->
+            <div class="waveform-container">
+                <h4 style="color: white; margin-top: 0;">🌊 非圧縮WAV波形ビジュアライザー</h4>
+                <div class="waveform">
+                    <div class="waveform-progress" id="waveformProgress"></div>
+                </div>
+                <div class="time-display">
+                    <span id="currentTime">0:00</span>
+                    <span style="font-size: 0.9em;">非圧縮PCM</span>
+                    <span id="totalTime">0:00</span>
+                </div>
+            </div>
+            
+            <div id="playbackStatus" class="status info">
+                ステータス: WAVファイル読み込み中...
+            </div>
+        </div>
+        
+        <!-- メタデータ詳細表示 -->
+        <div class="metadata-grid">
+            <!-- WAV基本情報 -->
+            <div class="metadata-card wav-specific">
+                <h4>🎼 WAV基本情報</h4>
+                <div class="metadata-item">
+                    <span class="metadata-label">再生時間:</span>
+                    <span class="metadata-value" id="duration">取得中...</span>
+                </div>
+                <div class="metadata-item">
+                    <span class="metadata-label">ファイルサイズ:</span>
+                    <span class="metadata-value">1.0 MB</span>
+                </div>
+                <div class="metadata-item">
+                    <span class="metadata-label">形式:</span>
+                    <span class="metadata-value">WAV (非圧縮PCM)</span>
+                </div>
+                <div class="metadata-item">
+                    <span class="metadata-label">MIMEタイプ:</span>
+                    <span class="metadata-value" id="mimeType">audio/wav</span>
+                </div>
+            </div>
+            
+            <!-- WAV技術仕様 -->
+            <div class="metadata-card">
+                <h4>⚙️ WAV技術仕様</h4>
+                <div class="metadata-item">
+                    <span class="metadata-label">推定ビットレート:</span>
+                    <span class="metadata-value" id="bitrate">計算中...</span>
+                </div>
+                <div class="metadata-item">
+                    <span class="metadata-label">サンプリングレート:</span>
+                    <span class="metadata-value" id="sampleRate">検出中...</span>
+                </div>
+                <div class="sample-rate-indicator">
+                    <div class="rate-dot"></div>
+                    <span style="font-size: 0.9em;">高精度サンプリング</span>
+                </div>
+                <div class="metadata-item">
+                    <span class="metadata-label">推定ビット深度:</span>
+                    <span class="metadata-value" id="bitDepth">計算中...</span>
+                </div>
+                <div class="bit-depth-meter">
+                    <div class="bit-depth-fill" id="bitDepthFill" style="width: 0%;"></div>
+                </div>
+                <div class="metadata-item">
+                    <span class="metadata-label">チャンネル数:</span>
+                    <span class="metadata-value" id="channels">検出中...</span>
+                </div>
+            </div>
+            
+            <!-- 音質分析 -->
+            <div class="metadata-card">
+                <h4>🔊 音質分析</h4>
+                <div class="metadata-item">
+                    <span class="metadata-label">音質分類:</span>
+                    <span class="metadata-value" id="quality">分析中...</span>
+                </div>
+                <div class="metadata-item">
+                    <span class="metadata-label">圧縮率:</span>
+                    <span class="metadata-value">0% (無圧縮)</span>
+                </div>
+                <div class="metadata-item">
+                    <span class="metadata-label">データ効率:</span>
+                    <span class="metadata-value" id="efficiency">計算中...</span>
+                </div>
+                <div class="metadata-item">
+                    <span class="metadata-label">音質スコア:</span>
+                    <span class="metadata-value" id="qualityScore">評価中...</span>
+                </div>
+            </div>
+            
+            <!-- ブラウザサポート -->
+            <div class="metadata-card">
+                <h4>🌐 ブラウザサポート</h4>
+                <div class="metadata-item">
+                    <span class="metadata-label">直接再生:</span>
+                    <span class="metadata-value" id="directPlayback">テスト中...</span>
+                </div>
+                <div class="metadata-item">
+                    <span class="metadata-label">メタデータ取得:</span>
+                    <span class="metadata-value" id="metadataSupport">テスト中...</span>
+                </div>
+                <div class="metadata-item">
+                    <span class="metadata-label">Web Audio API:</span>
+                    <span class="metadata-value" id="webAudioSupport">チェック中...</span>
+                </div>
+                <div class="metadata-item">
+                    <span class="metadata-label">シーク精度:</span>
+                    <span class="metadata-value" id="seekAccuracy">テスト中...</span>
+                </div>
+            </div>
+            
+            <!-- パフォーマンス -->
+            <div class="metadata-card">
+                <h4>📊 パフォーマンス</h4>
+                <div class="metadata-item">
+                    <span class="metadata-label">読み込み時間:</span>
+                    <span class="metadata-value" id="loadTime">測定中...</span>
+                </div>
+                <div class="metadata-item">
+                    <span class="metadata-label">初回再生まで:</span>
+                    <span class="metadata-value" id="timeToPlay">測定中...</span>
+                </div>
+                <div class="metadata-item">
+                    <span class="metadata-label">ストリーミング:</span>
+                    <span class="metadata-value" id="streaming">評価中...</span>
+                </div>
+                <div class="metadata-item">
+                    <span class="metadata-label">総合スコア:</span>
+                    <span class="metadata-value" id="overallScore">計算中...</span>
+                </div>
+            </div>
+            
+            <!-- ファイルサイズ分析 -->
+            <div class="metadata-card">
+                <h4>📈 ファイルサイズ分析</h4>
+                <div class="metadata-item">
+                    <span class="metadata-label">1秒あたりのサイズ:</span>
+                    <span class="metadata-value" id="sizePerSecond">計算中...</span>
+                </div>
+                <div class="metadata-item">
+                    <span class="metadata-label">MP3比較:</span>
+                    <span class="metadata-value" id="mp3Comparison">分析中...</span>
+                </div>
+                <div class="metadata-item">
+                    <span class="metadata-label">ストレージ効率:</span>
+                    <span class="metadata-value" id="storageEfficiency">評価中...</span>
+                </div>
+                <div class="metadata-item">
+                    <span class="metadata-label">帯域幅使用量:</span>
+                    <span class="metadata-value" id="bandwidth">計算中...</span>
+                </div>
+            </div>
+        </div>
+        
+        <!-- 高精度周波数アナライザー -->
+        <div class="frequency-analyzer">
+            <h4>📡 高精度リアルタイム周波数アナライザー</h4>
+            <p style="font-size: 0.9em; opacity: 0.8;">非圧縮WAVファイルの詳細な周波数解析</p>
+            <div class="frequency-bars" id="frequencyBars">
+                <!-- JavaScript で動的生成 -->
+            </div>
+            <div style="display: flex; justify-content: space-between; font-size: 0.8em; margin-top: 10px;">
+                <span>20Hz</span>
+                <span>1kHz</span>
+                <span>10kHz</span>
+                <span>20kHz</span>
+            </div>
+        </div>
+        
+        <!-- WAV vs MP3 比較 -->
+        <div class="wav-comparison">
+            <h3>🆚 WAV vs MP3 詳細比較</h3>
+            <div class="comparison-grid">
+                <div class="comparison-card">
+                    <h4>📊 WAVファイル (非圧縮)</h4>
+                    <ul>
+                        <li><strong>音質:</strong> 最高品質 (ロスレス)</li>
+                        <li><strong>ファイルサイズ:</strong> 大 (1MB)</li>
+                        <li><strong>圧縮:</strong> なし</li>
+                        <li><strong>ビットレート:</strong> <span id="wavBitrate">計算中...</span></li>
+                        <li><strong>用途:</strong> 音楽制作・マスタリング</li>
+                        <li><strong>互換性:</strong> 非常に高い</li>
+                    </ul>
+                </div>
+                <div class="comparison-card">
+                    <h4>📊 MP3ファイル (圧縮)</h4>
+                    <ul>
+                        <li><strong>音質:</strong> 良好 (一部劣化)</li>
+                        <li><strong>ファイルサイズ:</strong> 小 (~100KB)</li>
+                        <li><strong>圧縮:</strong> あり (約90%削減)</li>
+                        <li><strong>ビットレート:</strong> 128-320kbps</li>
+                        <li><strong>用途:</strong> 配信・ストリーミング</li>
+                        <li><strong>互換性:</strong> 非常に高い</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+        
+        <!-- 高度なテスト -->
+        <div class="advanced-tests">
+            <h3>🔬 高度なWAVテスト</h3>
+            <div class="test-grid">
+                <div class="test-card">
+                    <h4>🎯 隠しAudioテスト</h4>
+                    <p>非表示audio要素でのWAVメタデータ取得</p>
+                    <button id="testHiddenAudio">実行</button>
+                </div>
+                <div class="test-card">
+                    <h4>🔄 同時再生テスト</h4>
+                    <p>複数WAVファイルの同時処理テスト</p>
+                    <button id="testMultipleAudio">実行</button>
+                </div>
+                <div class="test-card">
+                    <h4>⚡ Wave解析</h4>
+                    <p>Web Audio APIによる詳細波形解析</p>
+                    <button id="testWaveAnalysis">実行</button>
+                </div>
+                <div class="test-card">
+                    <h4>📈 品質ベンチマーク</h4>
+                    <p>WAV vs 圧縮形式のA/Bテスト</p>
+                    <button id="testQualityBench">実行</button>
+                </div>
+                <div class="test-card">
+                    <h4>🎚️ ビット深度テスト</h4>
+                    <p>16bit/24bit深度の詳細分析</p>
+                    <button id="testBitDepth">実行</button>
+                </div>
+                <div class="test-card">
+                    <h4>📊 サンプルレート</h4>
+                    <p>44.1kHz/48kHz/96kHzの比較</p>
+                    <button id="testSampleRate">実行</button>
+                </div>
+            </div>
+            <div id="advancedResults" style="display: none;"></div>
+        </div>
+        
+        <!-- デバッグ情報 -->
+        <div class="metadata-card">
+            <h4>🔧 リアルタイムデバッグログ</h4>
+            <div class="code-block" id="debugLog">WAVテスト開始時刻: <span id="startTime"></span></div>
+        </div>
+    </div>
+
+    <script>
+        // グローバル変数
+        let testResults = {
+            directPlayback: false,
+            metadataExtracted: false,
+            webAudioSupported: false,
+            loadStartTime: Date.now(),
+            firstPlayTime: null,
+            sampleRate: null,
+            bitDepth: null
+        };
+        
+        let audioContext = null;
+        let analyser = null;
+        let dataArray = null;
+        let animationId = null;
+        
+        // デバッグログ機能
+        function addDebugLog(message) {
+            const debugLog = document.getElementById('debugLog');
+            const timestamp = new Date().toLocaleTimeString();
+            debugLog.innerHTML += `\n[${timestamp}] ${message}`;
+            debugLog.scrollTop = debugLog.scrollHeight;
+        }
+        
+        // ブラウザ情報の取得と表示
+        function detectBrowserInfo() {
+            const userAgent = navigator.userAgent;
+            const isWindows = userAgent.includes('Windows');
+            const isChrome = userAgent.includes('Chrome') && !userAgent.includes('Edg');
+            const isEdge = userAgent.includes('Edg');
+            const isFirefox = userAgent.includes('Firefox');
+            const isSafari = userAgent.includes('Safari') && !userAgent.includes('Chrome');
+            
+            let browserName = 'Unknown';
+            if (isChrome) browserName = 'Google Chrome';
+            else if (isEdge) browserName = 'Microsoft Edge';
+            else if (isFirefox) browserName = 'Mozilla Firefox';
+            else if (isSafari) browserName = 'Safari';
+            
+            const os = isWindows ? 'Windows' : (userAgent.includes('Mac') ? 'macOS' : 'その他');
+            
+            // WAVサポート機能の検出
+            const audio = document.createElement('audio');
+            const wavSupport = audio.canPlayType('audio/wav; codecs="1"');
+            const pcmSupport = audio.canPlayType('audio/wav');
+            const webAudioSupport = typeof AudioContext !== 'undefined' || typeof webkitAudioContext !== 'undefined';
+            
+            document.getElementById('browserInfo').innerHTML = `
+                <strong>OS:</strong> ${os}<br>
+                <strong>ブラウザ:</strong> ${browserName}<br>
+                <strong>WAVサポート:</strong> ${wavSupport || pcmSupport || 'unknown'}<br>
+                <strong>PCMサポート:</strong> ${pcmSupport || 'unknown'}<br>
+                <strong>Web Audio API:</strong> ${webAudioSupport ? '✅ サポート' : '❌ 非サポート'}<br>
+                <strong>最大サンプルレート:</strong> ${webAudioSupport ? '192kHz (推定)' : '不明'}
+            `;
+            
+            testResults.webAudioSupported = webAudioSupport;
+            document.getElementById('webAudioSupport').textContent = webAudioSupport ? '✅ サポート' : '❌ 非サポート';
+            
+            addDebugLog(`ブラウザ検出: ${os} - ${browserName}`);
+            addDebugLog(`WAVサポート: ${wavSupport}, PCM=${pcmSupport}, WebAudio=${webAudioSupport}`);
+            
+            return { isWindows, isChrome, isFirefox, isSafari, os, browserName };
+        }
+        
+        // 時間フォーマット関数
+        function formatTime(seconds) {
+            if (isNaN(seconds) || !isFinite(seconds)) return '0:00';
+            const minutes = Math.floor(seconds / 60);
+            const secs = Math.floor(seconds % 60);
+            return `${minutes}:${secs.toString().padStart(2, '0')}`;
+        }
+        
+        // ファイルサイズフォーマット
+        function formatSize(bytes) {
+            const units = ['B', 'KB', 'MB', 'GB'];
+            let size = bytes;
+            let unitIndex = 0;
+            
+            while (size >= 1024 && unitIndex < units.length - 1) {
+                size /= 1024;
+                unitIndex++;
+            }
+            
+            return `${size.toFixed(1)} ${units[unitIndex]}`;
+        }
+        
+        // メタデータ表示更新
+        function updateMetadata(audio) {
+            try {
+                const duration = audio.duration;
+                const fileSizeMB = 1.0; // 1MBのファイル
+                
+                document.getElementById('duration').textContent = formatTime(duration);
+                document.getElementById('totalTime').textContent = formatTime(duration);
+                
+                if (duration && duration > 0) {
+                    // WAVの推定ビットレート計算（非圧縮）
+                    const estimatedBitrate = Math.round((fileSizeMB * 8 * 1024) / duration);
+                    document.getElementById('bitrate').textContent = `${estimatedBitrate} kbps`;
+                    document.getElementById('wavBitrate').textContent = `${estimatedBitrate} kbps`;
+                    
+                    // ビット深度推定（一般的なWAVは16bit or 24bit）
+                    let estimatedBitDepth = 16;
+                    if (estimatedBitrate > 1500) estimatedBitDepth = 24;
+                    else if (estimatedBitrate > 700) estimatedBitDepth = 16;
+                    else estimatedBitDepth = 8;
+                    
+                    document.getElementById('bitDepth').textContent = `${estimatedBitDepth} bit (推定)`;
+                    testResults.bitDepth = estimatedBitDepth;
+                    
+                    // ビット深度メーターの更新
+                    const bitDepthPercentage = (estimatedBitDepth / 24) * 100;
+                    document.getElementById('bitDepthFill').style.width = `${bitDepthPercentage}%`;
+                    
+                    // 音質分類
+                    let quality = '最高品質 (非圧縮)';
+                    if (estimatedBitDepth >= 24) quality = 'プロフェッショナル品質 (24bit+)';
+                    else if (estimatedBitDepth >= 16) quality = 'CD品質 (16bit)';
+                    else quality = '標準品質 (8bit)';
+                    
+                    document.getElementById('quality').textContent = quality;
+                    
+                    // データ効率性
+                    const sizePerSecond = (fileSizeMB * 1024) / duration;
+                    document.getElementById('sizePerSecond').textContent = `${sizePerSecond.toFixed(1)} KB/秒`;
+                    document.getElementById('efficiency').textContent = `${sizePerSecond.toFixed(0)} KB/秒`;
+                    
+                    // MP3との比較
+                    const mp3Size = sizePerSecond / 10; // 概算で1/10のサイズ
+                    document.getElementById('mp3Comparison').textContent = `約${(sizePerSecond / mp3Size).toFixed(0)}倍大きい`;
+                    
+                    // ストレージ効率
+                    const efficiency = sizePerSecond < 200 ? '良好' : sizePerSecond < 400 ? '普通' : '低い';
+                    document.getElementById('storageEfficiency').textContent = efficiency;
+                    
+                    // 帯域幅使用量
+                    const bandwidth = sizePerSecond * 8; // kbps
+                    document.getElementById('bandwidth').textContent = `${bandwidth.toFixed(0)} kbps`;
+                    
+                    // 音質スコア（WAVは常に高スコア）
+                    let qualityScore = 85; // ベーススコア
+                    if (estimatedBitDepth >= 24) qualityScore += 10;
+                    if (estimatedBitrate > 1400) qualityScore += 5;
+                    document.getElementById('qualityScore').textContent = `${qualityScore}/100`;
+                } else {
+                    document.getElementById('bitrate').textContent = '計算不可';
+                    document.getElementById('quality').textContent = '不明';
+                }
+                
+                testResults.metadataExtracted = true;
+                document.getElementById('metadataSupport').textContent = '✅ 成功';
+                
+                addDebugLog(`WAVメタデータ取得成功: ${formatTime(duration)}, ${Math.round((fileSizeMB * 8 * 1024) / duration)}kbps`);
+                updateOverallScore();
+                
+            } catch (error) {
+                addDebugLog(`メタデータ取得エラー: ${error.message}`);
+                console.error('メタデータ取得エラー:', error);
+            }
+        }
+        
+        // 再生位置の更新
+        function updateProgress(audio) {
+            if (audio.duration > 0) {
+                const progress = (audio.currentTime / audio.duration) * 100;
+                document.getElementById('waveformProgress').style.width = progress + '%';
+                document.getElementById('currentTime').textContent = formatTime(audio.currentTime);
+            }
+        }
+        
+        // 総合スコアの更新
+        function updateOverallScore() {
+            let score = 0;
+            if (testResults.directPlayback) score += 25;
+            if (testResults.metadataExtracted) score += 25;
+            if (testResults.webAudioSupported) score += 20;
+            if (testResults.firstPlayTime && testResults.firstPlayTime < 500) score += 15; // WAVは高速読み込み期待
+            if (testResults.bitDepth && testResults.bitDepth >= 16) score += 10;
+            if (testResults.sampleRate && testResults.sampleRate >= 44100) score += 5;
+            
+            document.getElementById('overallScore').textContent = `${score}/100`;
+            
+            // ストリーミング評価
+            const streaming = score > 80 ? '優秀' : score > 60 ? '良好' : '普通';
+            document.getElementById('streaming').textContent = streaming;
+            
+            addDebugLog(`総合スコア更新: ${score}/100`);
+        }
+        
+        // Web Audio API セットアップ
+        function setupWebAudio(audio) {
+            if (!testResults.webAudioSupported) return;
+            
+            try {
+                audioContext = new (window.AudioContext || window.webkitAudioContext)();
+                analyser = audioContext.createAnalyser();
+                const source = audioContext.createMediaElementSource(audio);
+                
+                source.connect(analyser);
+                analyser.connect(audioContext.destination);
+                
+                analyser.fftSize = 1024; // WAVの高解像度解析
+                const bufferLength = analyser.frequencyBinCount;
+                dataArray = new Uint8Array(bufferLength);
+                
+                // WAV特有の高精度情報
+                testResults.sampleRate = audioContext.sampleRate;
+                document.getElementById('sampleRate').textContent = `${audioContext.sampleRate} Hz`;
+                document.getElementById('channels').textContent = `${audioContext.destination.channelCount} ch`;
+                
+                // シーク精度（WAVは非圧縮なので高精度）
+                document.getElementById('seekAccuracy').textContent = '非常に高い (非圧縮)';
+                
+                addDebugLog(`Web Audio API セットアップ完了: ${audioContext.sampleRate}Hz, ${audioContext.destination.channelCount}ch`);
+                startVisualization();
+                
+            } catch (error) {
+                addDebugLog(`Web Audio API エラー: ${error.message}`);
+                console.error('Web Audio API エラー:', error);
+            }
+        }
+        
+        // 高精度ビジュアライゼーション
+        function startVisualization() {
+            if (!analyser || !dataArray) return;
+            
+            function animate() {
+                if (!analyser) return;
+                
+                analyser.getByteFrequencyData(dataArray);
+                
+                // 周波数バーの作成・更新（WAV用高解像度）
+                const frequencyBars = document.getElementById('frequencyBars');
+                if (frequencyBars.children.length === 0) {
+                    for (let i = 0; i < 64; i++) { // WAVは高解像度なので64本
+                        const bar = document.createElement('div');
+                        bar.className = 'freq-bar';
+                        frequencyBars.appendChild(bar);
+                    }
+                }
+                
+                // 高精度データをバーに反映
+                for (let i = 0; i < frequencyBars.children.length; i++) {
+                    const value = dataArray[Math.floor(i * dataArray.length / 64)];
+                    const height = (value / 255) * 120;
+                    frequencyBars.children[i].style.height = `${height}px`;
+                    
+                    // WAVの場合は色も変化させる
+                    const hue = (value / 255) * 240; // 0-240度
+                    frequencyBars.children[i].style.filter = `hue-rotate(${hue}deg)`;
+                }
+                
+                animationId = requestAnimationFrame(animate);
+            }
+            
+            animate();
+        }
+        
+        // 隠しオーディオテスト
+        function testHiddenAudio() {
+            addDebugLog('隠しaudio要素（WAV）テスト開始');
+            
+            const hiddenAudio = document.createElement('audio');
+            hiddenAudio.src = 'file_example_WAV_1MG.wav';
+            hiddenAudio.preload = 'metadata';
+            hiddenAudio.style.display = 'none';
+            document.body.appendChild(hiddenAudio);
+            
+            const startTime = Date.now();
+            
+            hiddenAudio.addEventListener('loadedmetadata', function() {
+                const loadTime = Date.now() - startTime;
+                addDebugLog(`隠しWAV要素: メタデータ取得成功 (${loadTime}ms) - 非圧縮のため高速`);
+                setTimeout(() => hiddenAudio.remove(), 1000);
+            });
+        }
+        
+        // 波形解析テスト
+        function testWaveAnalysis() {
+            if (!testResults.webAudioSupported) {
+                addDebugLog('Wave解析テスト: Web Audio API非サポート');
+                return;
+            }
+            
+            addDebugLog('WAVファイル詳細波形解析開始');
+            
+            try {
+                const testAudio = document.createElement('audio');
+                testAudio.src = 'file_example_WAV_1MG.wav';
+                testAudio.crossOrigin = 'anonymous';
+                
+                const testContext = new (window.AudioContext || window.webkitAudioContext)();
+                const testAnalyser = testContext.createAnalyser();
+                
+                testAudio.addEventListener('canplay', function() {
+                    const source = testContext.createMediaElementSource(testAudio);
+                    source.connect(testAnalyser);
+                    testAnalyser.connect(testContext.destination);
+                    
+                    testAnalyser.fftSize = 2048; // 高解像度分析
+                    const bufferLength = testAnalyser.frequencyBinCount;
+                    const dataArray = new Uint8Array(bufferLength);
+                    
+                    testAnalyser.getByteFrequencyData(dataArray);
+                    
+                    // 周波数分布の分析
+                    let lowFreq = 0, midFreq = 0, highFreq = 0;
+                    const third = bufferLength / 3;
+                    
+                    for (let i = 0; i < bufferLength; i++) {
+                        if (i < third) lowFreq += dataArray[i];
+                        else if (i < third * 2) midFreq += dataArray[i];
+                        else highFreq += dataArray[i];
+                    }
+                    
+                    addDebugLog(`WAV周波数分析: 低音域=${Math.round(lowFreq/third)}, 中音域=${Math.round(midFreq/third)}, 高音域=${Math.round(highFreq/third)}`);
+                    
+                    setTimeout(() => {
+                        testContext.close();
+                        testAudio.remove();
+                    }, 1000);
+                });
+                
+                testAudio.load();
+                
+            } catch (error) {
+                addDebugLog(`Wave解析エラー: ${error.message}`);
+            }
+        }
+        
+        // 品質ベンチマークテスト
+        function testQualityBenchmark() {
+            addDebugLog('WAV品質ベンチマーク開始');
+            
+            const metrics = {
+                fileSize: 1024, // 1MB
+                duration: 0,
+                bitrate: 0,
+                quality: 'ロスレス'
+            };
+            
+            // WAVの理論値との比較
+            const theoreticalBitrate = 44100 * 16 * 2 / 1000; // 44.1kHz, 16bit, ステレオ
+            addDebugLog(`理論ビットレート: ${theoreticalBitrate} kbps (CD品質)`);
+            
+            // MP3との品質比較
+            const mp3Quality = [128, 192, 256, 320];
+            mp3Quality.forEach(rate => {
+                const sizeRatio = theoreticalBitrate / rate;
+                addDebugLog(`MP3 ${rate}kbps比較: WAVは約${sizeRatio.toFixed(1)}倍のサイズ`);
+            });
+        }
+        
+        // ビット深度テスト
+        function testBitDepth() {
+            addDebugLog('ビット深度詳細テスト開始');
+            
+            const commonBitDepths = [8, 16, 24, 32];
+            const sampleRate = 44100;
+            const channels = 2;
+            
+            commonBitDepths.forEach(depth => {
+                const bitrate = (sampleRate * depth * channels) / 1000;
+                const dynamicRange = depth * 6; // 約6dB per bit
+                addDebugLog(`${depth}bit: ${bitrate}kbps, ダイナミックレンジ=${dynamicRange}dB`);
+            });
+            
+            if (testResults.bitDepth) {
+                const estimatedDynamicRange = testResults.bitDepth * 6;
+                addDebugLog(`推定ダイナミックレンジ: ${estimatedDynamicRange}dB`);
+            }
+        }
+        
+        // サンプルレートテスト
+        function testSampleRate() {
+            addDebugLog('サンプルレート詳細テスト開始');
+            
+            const commonRates = [8000, 22050, 44100, 48000, 96000, 192000];
+            
+            commonRates.forEach(rate => {
+                const nyquistFreq = rate / 2;
+                const use = rate <= 22050 ? '電話品質' : 
+                           rate <= 44100 ? 'CD品質' : 
+                           rate <= 48000 ? 'DVD品質' : 
+                           rate <= 96000 ? 'プロ品質' : 
+                           'マスタリング品質';
+                addDebugLog(`${rate}Hz: ナイキスト周波数=${nyquistFreq}Hz, 用途=${use}`);
+            });
+            
+            if (testResults.sampleRate) {
+                const nyquist = testResults.sampleRate / 2;
+                addDebugLog(`現在のサンプルレート: ${testResults.sampleRate}Hz, 最大周波数=${nyquist}Hz`);
+            }
+        }
+        
+        // 初期化
+        document.addEventListener('DOMContentLoaded', function() {
+            // 開始時刻の表示
+            document.getElementById('startTime').textContent = new Date().toLocaleString();
+            
+            // ブラウザ情報の検出
+            const browserInfo = detectBrowserInfo();
+            
+            // WAVオーディオ要素の設定
+            const audio = document.getElementById('wavAudio');
+            const statusDiv = document.getElementById('playbackStatus');
+            
+            // カスタムコントロールのセットアップ
+            const playPauseBtn = document.getElementById('playPauseBtn');
+            const stopBtn = document.getElementById('stopBtn');
+            const rewindBtn = document.getElementById('rewindBtn');
+            const forwardBtn = document.getElementById('forwardBtn');
+            const loopBtn = document.getElementById('loopBtn');
+            const volumeSlider = document.getElementById('volumeSlider');
+            const volumeDisplay = document.getElementById('volumeDisplay');
+            
+            // 読み込み開始
+            audio.addEventListener('loadstart', function() {
+                addDebugLog('WAVファイル読み込み開始');
+                testResults.loadStartTime = Date.now();
+            });
+            
+            // メタデータ読み込み成功
+            audio.addEventListener('loadedmetadata', function() {
+                statusDiv.className = 'status success';
+                statusDiv.textContent = '✅ 成功: WAVメタデータを読み込みました（非圧縮PCM）';
+                updateMetadata(audio);
+                
+                const loadTime = Date.now() - testResults.loadStartTime;
+                document.getElementById('loadTime').textContent = `${loadTime}ms`;
+                addDebugLog('WAVメタデータ読み込み成功 - 非圧縮のため高速処理');
+                
+                setupWebAudio(audio);
+            });
+            
+            // 再生可能状態
+            audio.addEventListener('canplay', function() {
+                testResults.directPlayback = true;
+                document.getElementById('directPlayback').textContent = '✅ サポート';
+                addDebugLog('WAV再生可能状態に到達');
+                updateOverallScore();
+            });
+            
+            // 再生開始
+            audio.addEventListener('play', function() {
+                if (!testResults.firstPlayTime) {
+                    testResults.firstPlayTime = Date.now() - testResults.loadStartTime;
+                    document.getElementById('timeToPlay').textContent = `${testResults.firstPlayTime}ms`;
+                }
+                statusDiv.className = 'status success';
+                statusDiv.textContent = '▶️ 再生中: 非圧縮WAVファイルが正常に再生されています';
+                playPauseBtn.textContent = '⏸️ 一時停止';
+                addDebugLog('WAV再生開始 - 高音質非圧縮');
+                
+                if (audioContext && audioContext.state === 'suspended') {
+                    audioContext.resume();
+                }
+            });
+            
+            // 一時停止
+            audio.addEventListener('pause', function() {
+                playPauseBtn.textContent = '▶️ 再生';
+                addDebugLog('WAV一時停止');
+            });
+            
+            // 進行状況更新
+            audio.addEventListener('timeupdate', function() {
+                updateProgress(audio);
+            });
+            
+            // カスタムコントロール
+            playPauseBtn.addEventListener('click', function() {
+                if (audio.paused) {
+                    audio.play();
+                } else {
+                    audio.pause();
+                }
+            });
+            
+            stopBtn.addEventListener('click', function() {
+                audio.pause();
+                audio.currentTime = 0;
+                playPauseBtn.textContent = '▶️ 再生';
+            });
+            
+            rewindBtn.addEventListener('click', function() {
+                audio.currentTime = Math.max(0, audio.currentTime - 10);
+            });
+            
+            forwardBtn.addEventListener('click', function() {
+                audio.currentTime = Math.min(audio.duration, audio.currentTime + 10);
+            });
+            
+            loopBtn.addEventListener('click', function() {
+                audio.loop = !audio.loop;
+                loopBtn.style.background = audio.loop ? 
+                    'linear-gradient(45deg, #ff6b6b, #feca57)' : 
+                    'linear-gradient(45deg, #667eea, #764ba2)';
+                addDebugLog(`ループ: ${audio.loop ? 'ON' : 'OFF'}`);
+            });
+            
+            volumeSlider.addEventListener('input', function() {
+                audio.volume = this.value;
+                volumeDisplay.textContent = Math.round(this.value * 100) + '%';
+            });
+            
+            // エラーハンドリング
+            audio.addEventListener('error', function(e) {
+                statusDiv.className = 'status error';
+                statusDiv.textContent = '❌ エラー: WAVファイルの読み込みに失敗しました';
+                addDebugLog(`WAV再生エラー: ${e.message || 'Unknown error'}`);
+            });
+            
+            // 高度なテストボタン
+            document.getElementById('testHiddenAudio').addEventListener('click', testHiddenAudio);
+            document.getElementById('testMultipleAudio').addEventListener('click', () => {
+                for (let i = 0; i < 3; i++) {
+                    setTimeout(() => testHiddenAudio(), i * 200);
+                }
+            });
+            document.getElementById('testWaveAnalysis').addEventListener('click', testWaveAnalysis);
+            document.getElementById('testQualityBench').addEventListener('click', testQualityBenchmark);
+            document.getElementById('testBitDepth').addEventListener('click', testBitDepth);
+            document.getElementById('testSampleRate').addEventListener('click', testSampleRate);
+            
+            addDebugLog('WAVテスト初期化完了 - 非圧縮高音質オーディオテスト開始');
+        });
+        
+        // ページを離れる時のクリーンアップ
+        window.addEventListener('beforeunload', function() {
+            if (animationId) {
+                cancelAnimationFrame(animationId);
+            }
+            if (audioContext) {
+                audioContext.close();
+            }
+        });
+    </script>
+</body>
+</html>

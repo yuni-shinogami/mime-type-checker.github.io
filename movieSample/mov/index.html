@@ -1,0 +1,480 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MOVファイル再生テスト - Windows ブラウザ互換性チェック</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            max-width: 1000px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        
+        .container {
+            background: white;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        
+        h1 {
+            color: #333;
+            text-align: center;
+            margin-bottom: 30px;
+        }
+        
+        .browser-info {
+            background: #e3f2fd;
+            padding: 15px;
+            border-radius: 5px;
+            margin-bottom: 20px;
+            border-left: 4px solid #2196f3;
+        }
+        
+        .video-section {
+            margin: 30px 0;
+            padding: 20px;
+            border: 2px solid #ddd;
+            border-radius: 8px;
+            background: #fafafa;
+        }
+        
+        .video-player {
+            width: 100%;
+            max-width: 640px;
+            margin: 20px 0;
+        }
+        
+        .metadata-section {
+            margin: 20px 0;
+            padding: 15px;
+            background: #f9f9f9;
+            border-radius: 5px;
+            border: 1px solid #e0e0e0;
+        }
+        
+        .metadata-item {
+            margin: 8px 0;
+            padding: 5px 0;
+            border-bottom: 1px dotted #ccc;
+        }
+        
+        .status {
+            padding: 10px;
+            margin: 10px 0;
+            border-radius: 5px;
+            font-weight: bold;
+        }
+        
+        .success {
+            background: #c8e6c9;
+            color: #2e7d32;
+            border: 1px solid #4caf50;
+        }
+        
+        .error {
+            background: #ffcdd2;
+            color: #c62828;
+            border: 1px solid #f44336;
+        }
+        
+        .warning {
+            background: #fff3e0;
+            color: #ef6c00;
+            border: 1px solid #ff9800;
+        }
+        
+        .info {
+            background: #e1f5fe;
+            color: #0277bd;
+            border: 1px solid #03a9f4;
+        }
+        
+        .test-results {
+            margin-top: 30px;
+            padding: 20px;
+            background: #fff;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+        }
+        
+        .hidden-video-test {
+            margin-top: 20px;
+            padding: 15px;
+            background: #f0f4ff;
+            border-radius: 5px;
+            border: 1px solid #c5cae9;
+        }
+        
+        button {
+            background: #2196f3;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 14px;
+            margin: 5px;
+        }
+        
+        button:hover {
+            background: #1976d2;
+        }
+        
+        button:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+        }
+        
+        .code-block {
+            background: #f5f5f5;
+            padding: 10px;
+            border-radius: 3px;
+            font-family: 'Courier New', monospace;
+            font-size: 12px;
+            white-space: pre-wrap;
+            margin: 10px 0;
+            border: 1px solid #ddd;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🎬 MOVファイル再生テスト</h1>
+        <p style="text-align: center; color: #666;">Windows ブラウザでのMOVファイル互換性チェック</p>
+        
+        <!-- ブラウザ情報 -->
+        <div class="browser-info">
+            <h3>📊 ブラウザ情報</h3>
+            <div id="browserInfo">検出中...</div>
+        </div>
+        
+        <!-- MOVファイル再生テスト -->
+        <div class="video-section">
+            <h3>🎥 MOVファイル再生テスト</h3>
+            <p>テスト用MOVファイル: file_example_MOV_480_700kB.mov</p>
+            
+            <video id="movVideo" class="video-player" controls preload="metadata">
+                <source src="file_example_MOV_480_700kB.mov" type="video/quicktime">
+                お使いのブラウザはMOVファイルをサポートしていません。
+            </video>
+            
+            <div id="playbackStatus" class="status info">
+                ステータス: 読み込み中...
+            </div>
+            
+            <!-- メタデータ表示 -->
+            <div class="metadata-section">
+                <h4>📋 ビデオメタデータ</h4>
+                <div id="videoMetadata">
+                    <div class="metadata-item">再生時間: <span id="duration">取得中...</span></div>
+                    <div class="metadata-item">解像度: <span id="resolution">取得中...</span></div>
+                    <div class="metadata-item">アスペクト比: <span id="aspectRatio">取得中...</span></div>
+                    <div class="metadata-item">ファイルサイズ推定ビットレート: <span id="bitrate">取得中...</span></div>
+                    <div class="metadata-item">品質分類: <span id="quality">取得中...</span></div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- 隠しビデオテスト -->
+        <div class="hidden-video-test">
+            <h4>🔍 隠しVideo要素メタデータテスト</h4>
+            <p>再生ができない場合でも、隠しvideo要素からメタデータを取得できるかテストします。</p>
+            <button id="testHiddenVideo">隠しVideoでメタデータ取得テスト</button>
+            <div id="hiddenVideoResult" class="status info" style="display: none;">
+                テスト実行中...
+            </div>
+        </div>
+        
+        <!-- テスト結果まとめ -->
+        <div class="test-results">
+            <h3>📈 テスト結果サマリー</h3>
+            <div id="testSummary">
+                <div class="metadata-item">直接再生: <span id="directPlayback">テスト中...</span></div>
+                <div class="metadata-item">メタデータ取得: <span id="metadataExtraction">テスト中...</span></div>
+                <div class="metadata-item">隠しVideo要素: <span id="hiddenVideoStatus">未テスト</span></div>
+                <div class="metadata-item">推奨対処法: <span id="recommendation">分析中...</span></div>
+            </div>
+        </div>
+        
+        <!-- エラー詳細 -->
+        <div id="errorDetails" style="display: none;"></div>
+        
+        <!-- デバッグ情報 -->
+        <div class="metadata-section">
+            <h4>🔧 デバッグ情報</h4>
+            <div class="code-block" id="debugLog">テスト開始時刻: <span id="startTime"></span></div>
+        </div>
+    </div>
+
+    <script>
+        // グローバル変数
+        let testResults = {
+            directPlayback: false,
+            metadataFromVisible: false,
+            metadataFromHidden: false,
+            errorOccurred: false,
+            errorMessage: ''
+        };
+        
+        // デバッグログ機能
+        function addDebugLog(message) {
+            const debugLog = document.getElementById('debugLog');
+            const timestamp = new Date().toLocaleTimeString();
+            debugLog.innerHTML += `\n[${timestamp}] ${message}`;
+        }
+        
+        // ブラウザ情報の取得と表示
+        function detectBrowserInfo() {
+            const userAgent = navigator.userAgent;
+            const isWindows = userAgent.includes('Windows');
+            const isChrome = userAgent.includes('Chrome') && !userAgent.includes('Edg');
+            const isEdge = userAgent.includes('Edg');
+            const isFirefox = userAgent.includes('Firefox');
+            const isSafari = userAgent.includes('Safari') && !userAgent.includes('Chrome');
+            
+            let browserName = 'Unknown';
+            if (isChrome) browserName = 'Google Chrome';
+            else if (isEdge) browserName = 'Microsoft Edge';
+            else if (isFirefox) browserName = 'Mozilla Firefox';
+            else if (isSafari) browserName = 'Safari';
+            
+            const os = isWindows ? 'Windows' : (userAgent.includes('Mac') ? 'macOS' : 'その他');
+            
+            document.getElementById('browserInfo').innerHTML = `
+                <strong>OS:</strong> ${os}<br>
+                <strong>ブラウザ:</strong> ${browserName}<br>
+                <strong>MOV対応予想:</strong> ${getMOVSupport(isWindows, isChrome, isFirefox, isSafari)}
+            `;
+            
+            addDebugLog(`ブラウザ検出: ${os} - ${browserName}`);
+            
+            return { isWindows, isChrome, isFirefox, isSafari, os, browserName };
+        }
+        
+        function getMOVSupport(isWindows, isChrome, isFirefox, isSafari) {
+            if (isSafari) return '✅ 良好（Safari）';
+            if (isWindows && (isChrome || isFirefox)) return '❌ 困難（Windows Chrome/Firefox）';
+            return '⚠️ 不明';
+        }
+        
+        // 時間フォーマット関数
+        function formatDuration(seconds) {
+            if (isNaN(seconds) || !isFinite(seconds)) return '不明';
+            const minutes = Math.floor(seconds / 60);
+            const secs = Math.floor(seconds % 60);
+            return `${minutes}:${secs.toString().padStart(2, '0')} (${Math.round(seconds)}秒)`;
+        }
+        
+        // アスペクト比計算
+        function calculateAspectRatio(width, height) {
+            if (!width || !height) return '不明';
+            const gcd = (a, b) => b === 0 ? a : gcd(b, a % b);
+            const divisor = gcd(width, height);
+            return `${width / divisor}:${height / divisor}`;
+        }
+        
+        // 品質分類
+        function getQualityCategory(width, height) {
+            if (!width || !height) return '不明';
+            const pixels = width * height;
+            if (pixels >= 3840 * 2160) return '4K UHD (2160p)';
+            if (pixels >= 2560 * 1440) return 'QHD (1440p)';
+            if (pixels >= 1920 * 1080) return 'Full HD (1080p)';
+            if (pixels >= 1280 * 720) return 'HD (720p)';
+            if (pixels >= 854 * 480) return 'SD (480p)';
+            if (pixels >= 640 * 360) return '360p';
+            return '低解像度';
+        }
+        
+        // メタデータ表示更新
+        function updateMetadata(video, source = 'visible') {
+            try {
+                const duration = video.duration;
+                const width = video.videoWidth;
+                const height = video.videoHeight;
+                
+                document.getElementById('duration').textContent = formatDuration(duration);
+                document.getElementById('resolution').textContent = `${width || '不明'} × ${height || '不明'} ピクセル`;
+                document.getElementById('aspectRatio').textContent = calculateAspectRatio(width, height);
+                document.getElementById('quality').textContent = getQualityCategory(width, height);
+                
+                // ビットレート推定（700KBのファイルサイズを使用）
+                const fileSizeKB = 700; // サンプルファイルのサイズ
+                if (duration && duration > 0) {
+                    const estimatedBitrate = Math.round((fileSizeKB * 8) / duration);
+                    document.getElementById('bitrate').textContent = `${estimatedBitrate} kbps`;
+                } else {
+                    document.getElementById('bitrate').textContent = '計算不可';
+                }
+                
+                if (source === 'visible') {
+                    testResults.metadataFromVisible = true;
+                    addDebugLog(`メタデータ取得成功 (表示video): ${width}x${height}, ${formatDuration(duration)}`);
+                } else {
+                    testResults.metadataFromHidden = true;
+                    addDebugLog(`メタデータ取得成功 (隠しvideo): ${width}x${height}, ${formatDuration(duration)}`);
+                }
+                
+                updateTestSummary();
+                
+            } catch (error) {
+                addDebugLog(`メタデータ取得エラー (${source}): ${error.message}`);
+                console.error('メタデータ取得エラー:', error);
+            }
+        }
+        
+        // テスト結果サマリー更新
+        function updateTestSummary() {
+            document.getElementById('directPlayback').innerHTML = testResults.directPlayback ? 
+                '<span style="color: green;">✅ 成功</span>' : 
+                '<span style="color: red;">❌ 失敗</span>';
+                
+            document.getElementById('metadataExtraction').innerHTML = 
+                (testResults.metadataFromVisible || testResults.metadataFromHidden) ? 
+                '<span style="color: green;">✅ 成功</span>' : 
+                '<span style="color: red;">❌ 失敗</span>';
+                
+            document.getElementById('hiddenVideoStatus').innerHTML = testResults.metadataFromHidden ? 
+                '<span style="color: green;">✅ 成功</span>' : 
+                '<span style="color: gray;">⏳ 未テスト</span>';
+            
+            // 推奨対処法
+            let recommendation = '';
+            if (testResults.directPlayback) {
+                recommendation = '✅ このブラウザはMOVファイルを正常に再生できます';
+            } else if (testResults.metadataFromVisible || testResults.metadataFromHidden) {
+                recommendation = '⚠️ 再生はできませんが、メタデータは取得可能です。MP4への変換を推奨します';
+            } else {
+                recommendation = '❌ 完全非対応。MP4への変換が必要です';
+            }
+            
+            document.getElementById('recommendation').innerHTML = recommendation;
+        }
+        
+        // 隠しビデオテスト
+        function testHiddenVideoMetadata() {
+            addDebugLog('隠しvideo要素テスト開始');
+            
+            const hiddenVideo = document.createElement('video');
+            hiddenVideo.src = 'file_example_MOV_480_700kB.mov';
+            hiddenVideo.preload = 'metadata';
+            hiddenVideo.style.display = 'none';
+            hiddenVideo.muted = true;
+            document.body.appendChild(hiddenVideo);
+            
+            const resultDiv = document.getElementById('hiddenVideoResult');
+            resultDiv.style.display = 'block';
+            resultDiv.className = 'status info';
+            resultDiv.textContent = '隠しvideo要素でメタデータ取得を試行中...';
+            
+            let timeoutId = setTimeout(() => {
+                resultDiv.className = 'status warning';
+                resultDiv.textContent = '⏰ タイムアウト: 5秒以内にメタデータを取得できませんでした';
+                addDebugLog('隠しvideo要素テスト: タイムアウト');
+                cleanupHiddenVideo();
+            }, 5000);
+            
+            hiddenVideo.addEventListener('loadedmetadata', function() {
+                clearTimeout(timeoutId);
+                resultDiv.className = 'status success';
+                resultDiv.textContent = '✅ 成功: 隠しvideo要素からメタデータを取得しました';
+                addDebugLog('隠しvideo要素テスト: 成功');
+                updateMetadata(hiddenVideo, 'hidden');
+                setTimeout(cleanupHiddenVideo, 1000);
+            });
+            
+            hiddenVideo.addEventListener('error', function(e) {
+                clearTimeout(timeoutId);
+                resultDiv.className = 'status error';
+                resultDiv.textContent = '❌ 失敗: 隠しvideo要素でもメタデータ取得できませんでした';
+                addDebugLog(`隠しvideo要素テスト: エラー - ${e.message || 'Unknown error'}`);
+                cleanupHiddenVideo();
+            });
+            
+            function cleanupHiddenVideo() {
+                if (hiddenVideo.parentNode) {
+                    hiddenVideo.parentNode.removeChild(hiddenVideo);
+                    addDebugLog('隠しvideo要素をクリーンアップしました');
+                }
+            }
+        }
+        
+        // エラー詳細表示
+        function showErrorDetails(error) {
+            const errorDiv = document.getElementById('errorDetails');
+            errorDiv.style.display = 'block';
+            errorDiv.innerHTML = `
+                <div class="status error">
+                    <h4>🚨 エラー詳細</h4>
+                    <p><strong>エラータイプ:</strong> ${error.type || 'Unknown'}</p>
+                    <p><strong>エラーメッセージ:</strong> ${error.message || 'エラーの詳細は不明です'}</p>
+                    <p><strong>対処法:</strong></p>
+                    <ul>
+                        <li>VLC Media Player等のデスクトップアプリケーションを使用してください</li>
+                        <li>HandBrake、FFmpeg等でMP4形式に変換してください</li>
+                        <li>Safariブラウザ（macOS）での再生を試してください</li>
+                    </ul>
+                </div>
+            `;
+        }
+        
+        // 初期化
+        document.addEventListener('DOMContentLoaded', function() {
+            // 開始時刻の表示
+            document.getElementById('startTime').textContent = new Date().toLocaleString();
+            
+            // ブラウザ情報の検出
+            const browserInfo = detectBrowserInfo();
+            
+            // MOVビデオ要素の設定
+            const video = document.getElementById('movVideo');
+            const statusDiv = document.getElementById('playbackStatus');
+            
+            // メタデータ読み込み成功
+            video.addEventListener('loadedmetadata', function() {
+                statusDiv.className = 'status success';
+                statusDiv.textContent = '✅ 成功: メタデータを読み込みました';
+                testResults.metadataFromVisible = true;
+                updateMetadata(video, 'visible');
+                addDebugLog('メタデータ読み込み成功');
+            });
+            
+            // 再生可能状態
+            video.addEventListener('canplay', function() {
+                testResults.directPlayback = true;
+                addDebugLog('再生可能状態に到達');
+                updateTestSummary();
+            });
+            
+            // 再生開始
+            video.addEventListener('play', function() {
+                statusDiv.className = 'status success';
+                statusDiv.textContent = '▶️ 再生中: MOVファイルが正常に再生されています';
+                testResults.directPlayback = true;
+                addDebugLog('再生開始');
+                updateTestSummary();
+            });
+            
+            // エラーハンドリング
+            video.addEventListener('error', function(e) {
+                statusDiv.className = 'status error';
+                statusDiv.textContent = '❌ 再生エラー: このブラウザではMOVファイルを再生できません';
+                testResults.errorOccurred = true;
+                testResults.errorMessage = e.message || 'Unknown error';
+                addDebugLog(`再生エラー: ${e.message || 'Unknown error'}`);
+                showErrorDetails(e);
+                updateTestSummary();
+            });
+            
+            // 隠しビデオテストボタン
+            document.getElementById('testHiddenVideo').addEventListener('click', testHiddenVideoMetadata);
+            
+            addDebugLog('初期化完了 - テスト開始');
+        });
+    </script>
+</body>
+</html>

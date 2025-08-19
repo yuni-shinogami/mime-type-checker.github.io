@@ -535,12 +535,20 @@ document.addEventListener('DOMContentLoaded', () => {
                 infoText.style.marginTop = '10px';
                 fileContentDiv.appendChild(infoText);
                 
-                // ビデオの詳細情報を追加
-                video.addEventListener('loadedmetadata', function() {
+                // メタデータ取得用の隠しvideo要素を作成（再生とは独立してメタデータを取得）
+                const hiddenVideo = document.createElement('video');
+                hiddenVideo.src = content;
+                hiddenVideo.preload = 'metadata';
+                hiddenVideo.style.display = 'none';
+                hiddenVideo.muted = true; // 音声なしで読み込み
+                document.body.appendChild(hiddenVideo); // DOMに追加（メタデータ取得に必要）
+                
+                // メタデータ取得の共通関数
+                const extractVideoMetadata = (videoElement, isFromHiddenElement = false) => {
                     try {
-                        const duration = video.duration;
-                        const width = video.videoWidth;
-                        const height = video.videoHeight;
+                        const duration = videoElement.duration;
+                        const width = videoElement.videoWidth;
+                        const height = videoElement.videoHeight;
                         
                         // 時間を分:秒形式にフォーマット
                         const formatDuration = (seconds) => {
@@ -769,6 +777,17 @@ document.addEventListener('DOMContentLoaded', () => {
                             fileContentDiv.appendChild(warning);
                         }
                         
+                        // メタデータ取得元の情報を追加
+                        if (isFromHiddenElement) {
+                            const metadataSource = document.createElement('p');
+                            metadataSource.innerHTML = '<small><em>※ 再生はできませんが、ファイルからメタデータを取得しました</em></small>';
+                            metadataSource.style.margin = '5px 0 0 0';
+                            metadataSource.style.fontSize = '0.75em';
+                            metadataSource.style.color = '#888';
+                            metadataSource.style.fontStyle = 'italic';
+                            videoInfoContainer.appendChild(metadataSource);
+                        }
+                        
                         fileContentDiv.appendChild(videoInfoContainer);
                         
                     } catch (error) {
@@ -779,7 +798,61 @@ document.addEventListener('DOMContentLoaded', () => {
                         errorInfoText.style.color = '#999';
                         fileContentDiv.appendChild(errorInfoText);
                     }
+                };
+                
+                // メタデータ取得状態の管理
+                let metadataExtracted = false;
+                let metadataTimeout;
+                
+                // 表示用ビデオでメタデータ取得を試行
+                video.addEventListener('loadedmetadata', function() {
+                    extractVideoMetadata(video, false);
+                    metadataExtracted = true;
+                    clearTimeout(metadataTimeout);
+                    // 隠しvideo要素をクリーンアップ（不要になったため）
+                    setTimeout(() => {
+                        if (hiddenVideo.parentNode) {
+                            hiddenVideo.parentNode.removeChild(hiddenVideo);
+                        }
+                    }, 100);
                 });
+                
+                // 隠しビデオでメタデータ取得を試行（表示用ビデオで失敗した場合のバックアップ）
+                
+                hiddenVideo.addEventListener('loadedmetadata', function() {
+                    if (!metadataExtracted) {
+                        console.log('隠しvideo要素からメタデータを取得します');
+                        extractVideoMetadata(hiddenVideo, true);
+                        metadataExtracted = true;
+                        clearTimeout(metadataTimeout);
+                        // 隠しvideo要素をクリーンアップ
+                        setTimeout(() => {
+                            if (hiddenVideo.parentNode) {
+                                hiddenVideo.parentNode.removeChild(hiddenVideo);
+                            }
+                        }, 1000);
+                    }
+                });
+                
+                hiddenVideo.addEventListener('error', function(e) {
+                    console.warn('隠しvideo要素でもメタデータ取得に失敗しました:', e);
+                    // 隠しvideo要素をクリーンアップ
+                    setTimeout(() => {
+                        if (hiddenVideo.parentNode) {
+                            hiddenVideo.parentNode.removeChild(hiddenVideo);
+                        }
+                    }, 1000);
+                });
+                
+                // タイムアウト設定（5秒以内にメタデータが取得できない場合）
+                metadataTimeout = setTimeout(() => {
+                    if (!metadataExtracted) {
+                        console.log('メタデータ取得がタイムアウトしました');
+                        if (hiddenVideo.parentNode) {
+                            hiddenVideo.parentNode.removeChild(hiddenVideo);
+                        }
+                    }
+                }, 5000);
                 
                 // エラーハンドリング
                 video.addEventListener('error', function(e) {
@@ -893,6 +966,19 @@ document.addEventListener('DOMContentLoaded', () => {
                     
                     errorContainer.appendChild(solutionsList);
                     fileContentDiv.appendChild(errorContainer);
+                    
+                    // 再生はできないが、隠しvideoでメタデータ取得を試行
+                    console.log('表示用videoで再生エラーが発生しましたが、隠しvideoでメタデータ取得を試行します');
+                    if (!metadataExtracted) {
+                        // 隠しvideoに少し遅延を設けてメタデータ取得を試行
+                        setTimeout(() => {
+                            if (!metadataExtracted && hiddenVideo.parentNode) {
+                                console.log('隠しvideoでのメタデータ取得を促進します');
+                                // preloadを強制的に実行
+                                hiddenVideo.load();
+                            }
+                        }, 500);
+                    }
                 });
             } else if (effectiveMimeType.startsWith('audio/')) {
                 // オーディオファイルの場合はオーディオ要素として表示
